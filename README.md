@@ -37,7 +37,8 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
 3. Go to **Security** > **Session Settings**
 4. Under Browser Feature Permissions, ensure you have selected "Trusted URLs Only" for both Camera and Microphone access:
 
-![Browser Feature Permissions](setup_screenshots/browser_permissions.png)
+<img width="1632" alt="Capture d’écran 2025-04-23 à 10 27 52" src="https://github.com/user-attachments/assets/bacd95b1-7556-4066-8582-76e560f6119f" />
+
 
 5. Navigate to **Setup** > **Security** > **Trusted URLs**
 6. Click "New" to add a new trusted URL
@@ -49,14 +50,18 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
 9. Click on your newly created trusted URL to view details
 10. Ensure both "camera" and "microphone" permissions are enabled:
 
-![Trusted URL Details](setup_screenshots/trusted_url_details.png)
+<img width="1655" alt="Capture d’écran 2025-04-23 à 10 28 59" src="https://github.com/user-attachments/assets/49251b41-3894-4d2f-ad1c-3b77e10db5b1" />
+
 
 ### 2. Configure Named Credentials
 
 1. Navigate to **Setup** > **Security** > **Named Credentials**
-2. Create a new Named Credential as shown:
+2. Create a new External Named Credential as shown:
 
-![Named Credentials](setup_screenshots/named_credential.png)
+<img width="1663" alt="Capture d’écran 2025-04-23 à 10 31 19" src="https://github.com/user-attachments/assets/57f75bec-d9e2-4056-9703-9a39bde1a84c" />
+
+<img width="1660" alt="Capture d’écran 2025-04-23 à 10 31 26" src="https://github.com/user-attachments/assets/b215db1f-02cd-4118-a0d5-19b35f3d6928" />
+
 
 3. Fill in the following details:
    - Label: OpenAI
@@ -64,6 +69,10 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
    - URL: https://api.openai.com
    - Authentication Protocol: No Authentication
    - Save
+   - Create a Name credential using the external credential you just created ...
+  
+<img width="1664" alt="Capture d’écran 2025-04-23 à 10 32 01" src="https://github.com/user-attachments/assets/fb9c2306-1709-4059-80f6-f6fed07c7754" />
+
 
 4. Navigate to **Setup** > **Security** > **Remote Site Settings**
 5. Verify that `https://api.openai.com` is added to your Remote Site Settings
@@ -75,12 +84,12 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
 
 3. Connect to your Salesforce org by creating an alias:
    ```bash
-   sf org login web -a myOrgAlias
+   sf org login web -a myOrgUrl
    ```
 
 4. Deploy the component to your org:
    ```bash
-   sf project deploy start -o myOrgAlias
+   sf project deploy start -o myOrgUrl
    ```
 
 ### 4. Configure Settings
@@ -105,8 +114,9 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
      - Org ID: Your Salesforce Org ID
      - Enabled: Checked
 
-3. Click the "Test OpenAI" and "Test AgentForce" buttons to verify connectivity
-4. Click "Save" to store your settings
+3. Click "Save" to store your settings
+4. Refresh the page after a few seconds
+5. Click the "Test OpenAI" and "Test AgentForce" buttons to verify connectivity
 
 ### 5. Add the Component to a Lightning Page
 
