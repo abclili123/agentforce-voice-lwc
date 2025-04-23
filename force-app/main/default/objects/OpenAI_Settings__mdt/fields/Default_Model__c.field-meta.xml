@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Default_Model__c</fullName>
+    <defaultValue>&quot;gpt-4o&quot;</defaultValue>
+    <description>Default OpenAI model to use</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>The default OpenAI model to use for generating responses</inlineHelpText>
+    <label>Default Model</label>
+    <length>50</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

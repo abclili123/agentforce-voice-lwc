@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Default_Voice__c</fullName>
+    <defaultValue>&quot;alloy&quot;</defaultValue>
+    <description>Default voice for text-to-speech</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>The default voice to use for text-to-speech (e.g., alloy, nova, echo, etc.)</inlineHelpText>
+    <label>Default Voice</label>
+    <length>20</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

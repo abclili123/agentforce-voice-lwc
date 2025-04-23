@@ -1,0 +1,18 @@
+<template>
+    <lightning-card title="Agentforce Voice" icon-name="utility:record">
+        <div class="slds-p-around_medium">
+            <lightning-button
+                label={buttonLabel}
+                onclick={handleToggleRecording}
+                variant={buttonVariant}>
+            </lightning-button>
+        </div>
+        <div class="slds-p-around_medium">
+            <template for:each={formattedMessages} for:item="msg">
+                <div key={msg.id} class={msg.className}>
+                    <p>{msg.text}</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

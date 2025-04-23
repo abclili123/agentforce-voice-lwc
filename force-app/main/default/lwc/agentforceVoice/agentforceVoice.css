@@ -1,0 +1,15 @@
+.user-bubble {
+    background-color: #e3f3ff;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    align-self: flex-end;
+}
+
+.agent-bubble {
+    background-color: #f4f6f9;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    align-self: flex-start;
+}

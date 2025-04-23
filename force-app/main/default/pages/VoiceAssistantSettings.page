@@ -1,0 +1,154 @@
+<apex:page controller="VoiceAssistantSettingsController"
+           docType="html-5.0"
+           lightningStylesheets="true"
+           showHeader="false"
+           sidebar="false"
+           title="Voice Assistant Settings">
+    <apex:slds />
+    <div class="slds-scope">
+        <apex:form id="settingsForm">
+        <!-- Page Header with Actions -->
+        <div class="slds-page-header slds-grid slds-grid_vertical-align-center slds-p-around_medium">
+            <div class="slds-col">
+                <h1 class="slds-page-header__title slds-truncate">Voice Assistant Settings</h1>
+                <p class="slds-text-body_small">Configure OpenAI and AgentForce integrations</p>
+            </div>
+            <div class="slds-col slds-no-flex slds-align-bottom">
+                <apex:commandButton value="Save" action="{!saveSettings}"
+                                    styleClass="slds-button slds-button_brand slds-m-right_small"
+                                    reRender="messageWrapper" status="saveStatus"/>
+                <apex:commandButton value="Cancel" action="{!cancel}" immediate="true"
+                                    styleClass="slds-button slds-button_neutral"/>
+                <apex:actionStatus id="saveStatus">
+                    <div class="slds-spinner slds-spinner_brand slds-spinner_medium" role="status">
+                        <span class="slds-assistive-text">Saving...</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                </apex:actionStatus>
+            </div>
+        </div>
+        
+        <!-- Contents of settings form continue -->
+            <!-- Toast Message Wrapper (always present) -->
+            <apex:outputPanel id="messageWrapper">
+                <apex:outputPanel id="messagePanel" layout="block" rendered="{!NOT(ISBLANK(message))}">
+                    <div class="slds-notify slds-notify_toast slds-theme_{!IF(messageType=='success','success','error')}" role="status">
+                        <span class="slds-assistive-text">Notification</span>
+                        <h2>{!message}</h2>
+                    </div>
+                </apex:outputPanel>
+            </apex:outputPanel>
+            
+            <!-- Settings Cards -->
+            <div class="slds-grid slds-wrap slds-grid_pull-padded slds-p-around_medium">
+                <!-- OpenAI Card -->
+                <div class="slds-col slds-size_1-of-1 slds-p-horizontal_small slds-p-bottom_small">
+                    <article class="slds-card">
+                        <header class="slds-card__header slds-grid slds-grid_align-spread slds-p-horizontal_small slds-p-vertical_x-small">
+                            <h2 class="slds-text-heading_small">OpenAI Settings</h2>
+                            <apex:commandButton value="Test"
+                                                action="{!testOpenAIConnection}"
+                                                styleClass="slds-button slds-button_outline-brand"
+                                                reRender="messageWrapper"/>
+                        </header>
+                        <div class="slds-card__body slds-card__body_inner slds-p-horizontal_small">
+                            <div class="slds-form slds-form_vertical">
+                                <div class="slds-form-element">
+                                    <label class="slds-checkbox">
+                                        <apex:inputCheckbox value="{!openAIIsEnabled}"/>
+                                        <span class="slds-checkbox_faux"></span>
+                                        <span class="slds-form-element__label slds-m-left_x-small">Enable OpenAI</span>
+                                    </label>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">API Key</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:inputSecret value="{!openAIApiKey}" redisplay="true"
+                                                          styleClass="slds-input"/>
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Model</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:selectList value="{!openAIDefaultModel}" size="1"
+                                                         styleClass="slds-select">
+                                            <apex:selectOptions value="{!modelOptions}"/>
+                                        </apex:selectList>
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Voice</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:selectList value="{!openAIDefaultVoice}" size="1"
+                                                         styleClass="slds-select">
+                                            <apex:selectOptions value="{!voiceOptions}"/>
+                                        </apex:selectList>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                <!-- AgentForce Card -->
+                <div class="slds-col slds-size_1-of-1 slds-p-horizontal_small slds-p-bottom_small">
+                    <article class="slds-card">
+                        <header class="slds-card__header slds-grid slds-grid_align-spread slds-p-horizontal_small slds-p-vertical_x-small">
+                            <h2 class="slds-text-heading_small">AgentForce Settings</h2>
+                            <apex:commandButton value="Test"
+                                                action="{!testAgentForceConnection}"
+                                                styleClass="slds-button slds-button_outline-brand"
+                                                reRender="messageWrapper"/>
+                        </header>
+                        <div class="slds-card__body slds-card__body_inner slds-p-horizontal_small">
+                            <div class="slds-form slds-form_vertical">
+                                <div class="slds-form-element">
+                                    <label class="slds-checkbox">
+                                        <apex:inputCheckbox value="{!agentForceIsEnabled}"/>
+                                        <span class="slds-checkbox_faux"></span>
+                                        <span class="slds-form-element__label slds-m-left_x-small">Enable AgentForce</span>
+                                    </label>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Server URL</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:inputText value="{!agentForceServerUrl}"
+                                                       styleClass="slds-input"/>
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Client ID</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:inputSecret value="{!agentForceClientId}" redisplay="true"
+                                                           styleClass="slds-input"/>
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Client Secret</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:inputSecret value="{!agentForceClientSecret}" redisplay="true"
+                                                           styleClass="slds-input"/>
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Agent ID</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:inputText value="{!agentForceAgentId}"
+                                                       styleClass="slds-input"/>
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Organization ID</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:inputText value="{!agentForceOrgId}"
+                                                       styleClass="slds-input"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </apex:form>
+    </div>
+</apex:page>
