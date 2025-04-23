@@ -10,6 +10,9 @@ This component creates a seamless voice interface in Salesforce:
 2. **AgentForce Integration**: Sends the transcribed text to AgentForce for intelligent processing
 3. **Text-to-Speech**: Converts AgentForce's response back to speech using OpenAI's TTS API
 
+<img width="1642" alt="Capture d’écran 2025-04-23 à 11 08 19" src="https://github.com/user-attachments/assets/296b0b2c-1e6a-4a7a-85c4-4af7b97d7341" />
+
+
 ## Prerequisites
 
 Before deploying this component, ensure you have:
