@@ -35,10 +35,13 @@ Before deploying this component, ensure you have:
 First, you need to add OpenAI's API domain as a trusted URL and allow microphone access:
 
 1. In Salesforce Setup, navigate to **Security** > **CORS**
-2. Add `https://api.openai.com` to the allowed origins
+2. Add `https://api.openai.com` to the allowed origins. Also make sure to add your own current domain url (see capture below - also note that this is the one url you will have to use later on when setting up your variables after deploying the component)
 
-3. Go to **Security** > **Session Settings**
-4. Under Browser Feature Permissions, ensure you have selected "Trusted URLs Only" for both Camera and Microphone access:
+   ![Capture d’écran 2025-04-29 à 16 37 40](https://github.com/user-attachments/assets/6079a0d6-7b41-4c81-9731-c0c566eb5c74)
+
+
+4. Go to **Security** > **Session Settings**
+5. Under Browser Feature Permissions, ensure you have selected "Trusted URLs Only" for both Camera and Microphone access:
 
 <img width="1632" alt="Capture d’écran 2025-04-23 à 10 27 52" src="https://github.com/user-attachments/assets/bacd95b1-7556-4066-8582-76e560f6119f" />
 
