@@ -25,7 +25,7 @@ Before deploying this component, ensure you have:
   - OpenAI API Key
   - Your Salesforce Org URL (e.g., `storm-41153b85fca0d8.my.salesforce.com`)
   - Client ID and Client Secret for OAuth
-  - AgentForce Agent ID (found in Agent Builder URL when editing agent)
+  - AgentForce Agent ID (found in Agent Builder URL when editing agent) : Note - this must be a new Agentforce Service Agent to work (no internal only facing agent for now as those ASA are able to be exposed through the API and the other one won't be able to be reached)
   - Org ID
 
 ## Setup Instructions
@@ -65,6 +65,7 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
 
 <img width="1660" alt="Capture d’écran 2025-04-23 à 10 31 26" src="https://github.com/user-attachments/assets/b215db1f-02cd-4118-a0d5-19b35f3d6928" />
 
+Note : if you're unsure of what you need to do on this part, please refer to this link : <a href="https://developer.salesforce.com/docs/einstein/genai/guide/agent-api-get-started.html" target="_blank">Get started with Agentforce API - Create a Connected App</a>. Make sure you're using the right permset (and for now, only those permissions as you may encounter a 400 Error if you're not doing this right).
 
 3. Fill in the following details:
    - Label: OpenAI
@@ -125,9 +126,10 @@ First, you need to add OpenAI's API domain as a trusted URL and allow microphone
 
 1. Navigate to any Lightning page you wish to add the component to
 2. Edit the page in Lightning App Builder
-3. Find the "Voice Assistant" component in the component list
+3. Find the "Voice Assistant" component in the component list (beware, there is an Agentforce Voice LWC in your list that won't work ... - use the right one)
 4. Drag and drop it onto your page
 5. Save and activate the page
+6. If you're facing design issues, make sure you're using the Lightning Design System 2 or a compatible theme (Cosmos for now in demo Orgs ... if i remember correctly)
 
 ## First Use
 
