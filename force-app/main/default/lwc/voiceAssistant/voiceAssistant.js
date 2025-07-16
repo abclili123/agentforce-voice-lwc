@@ -19,6 +19,16 @@ export default class VoiceAssistant extends LightningElement {
     @track statusClass = '';
     @track isLoading = true;
     @track error = null;
+    @track isCollapsed = true;
+
+    // ability to collapse component
+    get collapseIcon() {
+        return this.isCollapsed ? 'utility:chevrondown' : 'utility:chevronup';
+    }
+
+    toggleCollapse() {
+        this.isCollapsed = !this.isCollapsed;
+    }
     
     // Audio processing
     mediaRecorder = null;
@@ -202,7 +212,7 @@ export default class VoiceAssistant extends LightningElement {
     addWelcomeMessage() {
         this.messages.push({
             id: 'welcome',
-            content: 'Hello! I\'m your AI voice assistant. How can I help you today?',
+            content: 'Thank you for chatting with New York Life. Hello! I\'m glad to assist you today. How may I help you?',
             sender: 'assistant',
             timestamp: new Date().toISOString(),
             cssClass: 'message assistant'

@@ -1,36 +1,45 @@
 <template>
     <div class="slds-card">
-        <div class="slds-card__header">
-            <h2 class="slds-card__header-title">Voice Assistant</h2>
+        <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-horizontal_small">
+            <h2 class="slds-card__header-title">Customer Service Representative</h2>
+            <lightning-button-icon
+                icon-name={collapseIcon}
+                alternative-text="Toggle Collapse"
+                title="Toggle Collapse"
+                onclick={toggleCollapse}>
+            </lightning-button-icon>
         </div>
-        <div class="slds-card__body">
-            <div class="conversation-container">
-                <div class="conversation">
-                    <template for:each={messages} for:item="message">
-                        <div key={message.id} class={message.cssClass}>
-                            <div class="message-content">
-                                <p>{message.content}</p>
+
+        <template if:true={isCollapsed}>
+            <div class="slds-card__body">
+                <div class="conversation-container">
+                    <div class="conversation">
+                        <template for:each={messages} for:item="message">
+                            <div key={message.id} class={message.cssClass}>
+                                <div class="message-content">
+                                    <p>{message.content}</p>
+                                </div>
                             </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="controls-container">
+                        <div class="record-control">
+                            <lightning-button
+                                label="Hold to Talk"
+                                variant="brand"
+                                onmousedown={handleHoldToTalkStart}
+                                onmouseup={handleHoldToTalkEnd}>
+                            </lightning-button>
                         </div>
-                    </template>
-                </div>
-            </div>
-            
-            <div class="controls">
-                <div class="controls-container">
-                    <div class="record-control">
-                        <lightning-button
-                            label="Hold to Talk"
-                            variant="brand"
-                            onmousedown={handleHoldToTalkStart}
-                            onmouseup={handleHoldToTalkEnd}>
-                        </lightning-button>
-                    </div>
-                    <div class="status-indicator">
-                        <span>{status}</span>
+                        <div class="status-indicator">
+                            <span>{status}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </template>
     </div>
 </template>
