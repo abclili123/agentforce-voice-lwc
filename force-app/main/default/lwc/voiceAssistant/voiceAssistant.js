@@ -9,6 +9,7 @@ import textToSpeech from '@salesforce/apex/OpenAIController.textToSpeech';
 import completeAgentForceConversation from '@salesforce/apex/AgentForceController.completeConversation';
 import processAudio from '@salesforce/apex/OpenAIController.processAudio';
 import getSecureApiKey from '@salesforce/apex/OpenAIController.getSecureApiKey';
+import CHATTERBOX_LOGO from '@salesforce/resourceUrl/ChatterboxLogo';
 
 export default class VoiceAssistant extends LightningElement {
     @api recordId;
@@ -21,6 +22,8 @@ export default class VoiceAssistant extends LightningElement {
     @track error = null;
     @track isCollapsed = true;
     @track chatInput = '';
+
+    avatarUrl = CHATTERBOX_LOGO;
 
     // ability to collapse component
     get collapseIcon() {
