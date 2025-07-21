@@ -561,19 +561,43 @@ export default class VoiceAssistant extends LightningElement {
             } else {
                 // Show AgentForce response
                 const assistantText = agentResult.agentResponse;
+                console.log('assistantText:', assistantText, '| Type:', typeof assistantText);
+
                 this.addAssistantMessage(assistantText);
-                
-                // Convert to speech
+
                 try {
                     this.updateStatus('Converting to speech...', 'processing');
-                    console.log('Sending text to TTS:', assistantText.substring(0, 100) + '...');
-                    
-                    const ttsAudio = await textToSpeech({ text: assistantText, voice: this.voice });
+
+                    let textToSpeak = assistantText;
+
+                    // Summarize text
+                    console.log('Requesting summary for voice...');
+                    try {
+                        const summarizationPrompt = 
+                            'Please summarize the following message in one clear and natural response that would sound appropriate if spoken aloud by a voice assistant. ' +
+                            'The summary should be conversational and helpful. Do not include URLs, IDs, or overly technical details unless absolutely necessary. ' +
+                            'DO NOT ADD OR MODIFY ANY INFORMATION GIVEN!!' +
+                            'Here is the message to summarize: ' + assistantText;
+                        const openAIResponse = await generateResponse({ userMessage: summarizationPrompt });
+                        if (openAIResponse) {
+                            textToSpeak = openAIResponse;
+                            console.log('Using summarized TTS:', textToSpeak);
+                        } else {
+                            console.warn('Summarization failed or returned no summary. Falling back to full response.');
+                        }
+                    } catch (summaryError) {
+                        console.error('Error during summarization request:', summaryError);
+                    }
+
+                    // Convert text to speech (summary or fallback)
+                    console.log('Sending text to TTS:', textToSpeak.substring(0, 100) + '...');
+                    const ttsAudio = await textToSpeech({ text: textToSpeak, voice: this.voice });
                     console.log('TTS response received, length:', ttsAudio ? ttsAudio.length : 'undefined');
-                    
+
                     // Play the audio
                     this.updateStatus('Speaking', 'speaking');
                     await this.playAudio(ttsAudio);
+
                 } catch (ttsError) {
                     console.error('Text-to-Speech error:', ttsError);
                     this.showToast('Text-to-Speech Error', 'Could not convert response to speech. Please check the console for details.', 'warning');
