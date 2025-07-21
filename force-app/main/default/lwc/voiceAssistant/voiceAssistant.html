@@ -1,13 +1,24 @@
 <template>
     <div class="slds-card">
-        <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-horizontal_small">
-            <h2 class="slds-card__header-title">Customer Service Representative</h2>
-            <lightning-button-icon
-                icon-name={collapseIcon}
-                alternative-text="Toggle Collapse"
-                title="Toggle Collapse"
-                onclick={toggleCollapse}>
-            </lightning-button-icon>
+        <div class="slds-card__header slds-grid slds-p-horizontal_small slds-align-center">
+            <!-- Left section: icon + title -->
+            <div class="slds-col slds-grid slds-align-center">
+                <div class="avatar-container">
+                    <lightning-icon icon-name="standard:user" size="medium" class="avatar-icon"></lightning-icon>
+                </div>
+                <div class="slds-card__header-title slds-m-left_small lowered-title">Customer Service Representative</div>
+            </div>
+
+            <!-- Right section: collapse button -->
+            <div class="slds-col_bump-left">
+                <lightning-button-icon
+                    icon-name={collapseIcon}
+                    variant="border"
+                    alternative-text="Toggle Collapse"
+                    title="Toggle Collapse"
+                    onclick={toggleCollapse}>
+                </lightning-button-icon>
+            </div>
         </div>
 
         <template if:true={isCollapsed}>
@@ -15,31 +26,66 @@
                 <div class="conversation-container">
                     <div class="conversation">
                         <template for:each={messages} for:item="message">
-                            <div key={message.id} class={message.cssClass}>
+                            <div key={message.id} class={message.cssClass} data-id={message.id}>
                                 <div class="message-content">
-                                    <p>{message.content}</p>
+                                    <template if:true={message.isTyping}>
+                                        <div class="typing-indicator">
+                                            <span class="dot"></span>
+                                            <span class="dot"></span>
+                                            <span class="dot"></span>
+                                        </div>
+                                    </template>
+                                    <template if:false={message.isTyping}>
+                                        <template if:true={message.html}>
+                                            <div class="rendered-html" lwc:dom="manual"></div>
+                                        </template>
+                                        <template if:false={message.html}>
+                                            <p>{message.content}</p>
+                                        </template>
+                                    </template>
                                 </div>
                             </div>
                         </template>
                     </div>
                 </div>
 
-                <div class="controls">
-                    <div class="controls-container">
-                        <div class="record-control">
-                            <lightning-button
-                                label="Hold to Talk"
-                                variant="brand"
-                                onmousedown={handleHoldToTalkStart}
-                                onmouseup={handleHoldToTalkEnd}>
-                            </lightning-button>
-                        </div>
-                        <div class="status-indicator">
-                            <span>{status}</span>
-                        </div>
+                <div class="slds-grid slds-align-center interaction-bar">
+                    <!-- Input -->
+                    <div class="slds-grow input-wrapper">
+                    <lightning-input
+                        class="chat-input"
+                        variant="label-hidden"
+                        value={chatInput}
+                        onchange={handleChatInputChange}
+                        onkeypress={handleChatKeyPress}
+                        placeholder="Type your message..."
+                    ></lightning-input>
                     </div>
+
+                    <!-- Hold to Talk button -->
+                    <lightning-button-icon
+                        variant="container"
+                        icon-name="utility:unmuted"
+                        alternative-text="Hold to Talk"
+                        disable-animation
+                        onmousedown={handleHoldToTalkStart}
+                        onmouseup={handleHoldToTalkEnd}
+                        class="mic-button"
+                    ></lightning-button-icon>
+
+                    <!-- Send icon button -->
+                    <lightning-button-icon
+                        variant="container"
+                        icon-name="utility:arrowup"
+                        alternative-text="Send"
+                        disable-animation
+                        onclick={handleSendChatMessage}
+                        class="send-button"
+                    ></lightning-button-icon>
                 </div>
+
             </div>
         </template>
     </div>
 </template>
+

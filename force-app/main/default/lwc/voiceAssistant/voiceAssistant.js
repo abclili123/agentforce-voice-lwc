@@ -20,6 +20,7 @@ export default class VoiceAssistant extends LightningElement {
     @track isLoading = true;
     @track error = null;
     @track isCollapsed = true;
+    @track chatInput = '';
 
     // ability to collapse component
     get collapseIcon() {
@@ -29,6 +30,8 @@ export default class VoiceAssistant extends LightningElement {
     toggleCollapse() {
         this.isCollapsed = !this.isCollapsed;
     }
+
+    lastHtmlMessageId = null;
     
     // Audio processing
     mediaRecorder = null;
@@ -151,14 +154,14 @@ export default class VoiceAssistant extends LightningElement {
         this.loadSettings();
         this.addWelcomeMessage();
         // Add global event listeners for keyboard shortcuts
-        window.addEventListener('keydown', this.handleKeyDown.bind(this));
-        window.addEventListener('keyup', this.handleKeyUp.bind(this));
+        // window.addEventListener('keydown', this.handleKeyDown.bind(this));
+        // window.addEventListener('keyup', this.handleKeyUp.bind(this));
     }
     
     disconnectedCallback() {
         // Clean up event listeners
-        window.removeEventListener('keydown', this.handleKeyDown.bind(this));
-        window.removeEventListener('keyup', this.handleKeyUp.bind(this));
+        // window.removeEventListener('keydown', this.handleKeyDown.bind(this));
+        // window.removeEventListener('keyup', this.handleKeyUp.bind(this));
         // Clean up media resources
         this.releaseMediaResources();
     }
@@ -501,10 +504,34 @@ export default class VoiceAssistant extends LightningElement {
             
             // Update the user message with the transcription
             this.updateLastUserMessage(transcription);
+
+            // add loading bubble
+            const typingMessageId = `typing-${Date.now()}`;
+            this.messages.push({
+                id: typingMessageId,
+                sender: 'assistant',
+                isTyping: true,
+                cssClass: 'message assistant'
+            });
             
             // Process with AgentForce
             console.log('Sending transcription to AgentForce...');
-            const agentResult = await completeAgentForceConversation({ userQuery: transcription });
+            const agentResult = await completeAgentForceConversation({
+                userQuery: transcription,
+                clientSessionId: this.sessionId,
+                clientSequenceId: this.sequenceId
+            });
+
+            this.messages = this.messages.filter(msg => msg.id !== typingMessageId);
+
+            if (agentResult && agentResult.success) {
+                this.sessionId = agentResult.sessionId;
+                this.sequenceId = agentResult.sequenceId;
+            } else {
+                this.sessionId = null;
+                this.sequenceId = 1;
+            }
+
             
             if (!agentResult || !agentResult.success) {
                 const errorMsg = agentResult?.error || agentResult?.message || 'Unknown error';
@@ -513,6 +540,7 @@ export default class VoiceAssistant extends LightningElement {
                 // Fall back to OpenAI
                 console.log('Falling back to OpenAI...');
                 const openAIResponse = await generateResponse({ userMessage: transcription });
+                
                 this.addAssistantMessage(openAIResponse);
                 
                 // Convert to speech
@@ -673,16 +701,63 @@ export default class VoiceAssistant extends LightningElement {
         });
         this.scrollToBottom();
     }
+
+    convertLinks(text) {
+        // 1. Labeled link: "label" (url)
+        const labeledLinkRegex = /"([^"]+)"\s*\(\s*(https?:\/\/[^\s)]+)\s*\)/g;
+        let result = text.replace(labeledLinkRegex, (match, label, url) => {
+            const safeUrl = url.replace(/"/g, '&quot;');
+            const safeLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
+        });
+
+        // 2. Markdown-style: [label](url)
+        const markdownRegex = /\[([^\]]+)\]\(\s*(https?:\/\/[^\s)]+)\s*\)/g;
+        result = result.replace(markdownRegex, (match, label, url) => {
+            const safeUrl = url.replace(/"/g, '&quot;');
+            const safeLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
+        });
+
+        // 3. Bare URLs – wrap only those not already inside an anchor
+        // Match URLs NOT preceded by a quote or equal sign (which often indicates an href="")
+        const bareUrlRegex = /(?<!["'=])\b(https?:\/\/[^\s<>"')]+)/g;
+        result = result.replace(bareUrlRegex, (url) => {
+            const safeUrl = url.replace(/"/g, '&quot;');
+            return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
+        });
+
+        return result;
+    }
     
     addAssistantMessage(text) {
+        const formattedText = this.convertLinks(text);
+        const id = Date.now().toString();
+
         this.messages.push({
-            id: Date.now().toString(),
+            id,
             content: text,
+            html: formattedText,
             sender: 'assistant',
             timestamp: new Date().toISOString(),
             cssClass: 'message assistant'
         });
+
+        this.lastHtmlMessageId = id;
         this.scrollToBottom();
+    }
+
+    renderedCallback() {
+        if (this.lastHtmlMessageId) {
+            const selector = `[data-id="${this.lastHtmlMessageId}"] .rendered-html`;
+            const container = this.template.querySelector(selector);
+            const message = this.messages.find(m => m.id === this.lastHtmlMessageId);
+            
+            if (container && message?.html) {
+                container.innerHTML = message.html;
+                this.lastHtmlMessageId = null; // reset after rendering
+            }
+        }
     }
     
     updateLastUserMessage(text) {
@@ -735,29 +810,6 @@ export default class VoiceAssistant extends LightningElement {
     
     // EVENT HANDLERS
     
-    handleKeyDown(event) {
-        // If spacebar is pressed and no input is focused
-        if (event.code === 'Space' && 
-            !event.target.tagName.match(/INPUT|TEXTAREA|SELECT|BUTTON/i)) {
-            
-            event.preventDefault(); // Prevent scrolling
-            if (!this.isRecording) {
-                this.handleHoldToTalkStart();
-            }
-        }
-    }
-    
-    handleKeyUp(event) {
-        // If spacebar is released
-        if (event.code === 'Space' && 
-            !event.target.tagName.match(/INPUT|TEXTAREA|SELECT|BUTTON/i)) {
-            
-            if (this.isRecording) {
-                this.handleHoldToTalkEnd();
-            }
-        }
-    }
-    
     handleVoiceChange(event) {
         this.voice = event.target.value;
     }
@@ -765,5 +817,94 @@ export default class VoiceAssistant extends LightningElement {
     handleOpenSettings() {
         // Navigate to Visualforce settings page
         window.open('/apex/VoiceAssistantSettings', '_blank');
+    }
+
+    // MANUAL CHAT METHODS
+
+    handleChatInputChange(event) {
+        this.chatInput = event.target.value;
+    }
+
+    handleChatKeyPress(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            this.sendChatMessage();
+        }
+    }
+
+    handleSendChatMessage() {
+        this.sendChatMessage();
+    }
+
+    async sendChatMessage() {
+        const message = this.chatInput.trim();
+        console.log('Chat message:', message);
+        if (!message) {
+            return;
+        }
+
+        // Clear input
+        this.chatInput = '';
+
+        // Add user message
+        this.addUserMessage(message);
+
+        try {
+            // Add loading bubble
+            const typingMessageId = `typing-${Date.now()}`;
+            this.messages.push({
+                id: typingMessageId,
+                sender: 'assistant',
+                isTyping: true,
+                cssClass: 'message assistant'
+            });
+
+            // Process with AgentForce (same as voice)
+            console.log('Sending text message to AgentForce...');
+            const agentResult = await completeAgentForceConversation({
+                userQuery: message,
+                clientSessionId: this.sessionId,
+                clientSequenceId: this.sequenceId
+            });
+
+            this.messages = this.messages.filter(msg => msg.id !== typingMessageId);
+
+            if (agentResult && agentResult.success) {
+                this.sessionId = agentResult.sessionId;
+                this.sequenceId = agentResult.sequenceId;
+            } else {
+                this.sessionId = null;
+                this.sequenceId = 1;
+            }
+
+            if (!agentResult || !agentResult.success) {
+                const errorMsg = agentResult?.error || agentResult?.message || 'Unknown error';
+                this.showToast('AgentForce Error', errorMsg, 'error');
+
+                // Fall back to OpenAI
+                console.log('Falling back to OpenAI...');
+                const openAIResponse = await generateResponse({ userMessage: message });
+                this.addAssistantMessage(openAIResponse);
+
+            } else {
+                // Show AgentForce response
+                const assistantText = agentResult.agentResponse;
+                this.addAssistantMessage(assistantText);
+            }
+
+        } catch (error) {
+            console.error('Error processing chat message:', error);
+
+            let errorMsg = 'Unknown error';
+            if (error) {
+                if (error.body && error.body.message) {
+                    errorMsg = error.body.message;
+                } else if (error.message) {
+                    errorMsg = error.message;
+                }
+            }
+
+            this.showToast('Processing Error', `Failed to process message: ${errorMsg}`, 'error');
+        }
     }
 }

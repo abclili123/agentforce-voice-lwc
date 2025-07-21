@@ -46,7 +46,7 @@ public with sharing class AgentForceController {
      * @return Response from AgentForce
      */
     @AuraEnabled
-    public static Map<String, Object> completeConversation(String userQuery) {
+    public static Map<String, Object> completeConversation(String userQuery, String clientSessionId, Integer clientSequenceId) {
         try {
             // Get settings
             AgentForce_Settings__mdt settings = getSettings();
@@ -63,6 +63,11 @@ public with sharing class AgentForceController {
                     return authResult;
                 }
             }
+
+            // Use client-supplied session ID or create one
+            sessionId = clientSessionId;
+            sequenceId = (clientSequenceId != null && clientSequenceId > 0) ? clientSequenceId : 1;
+
             
             // Ensure we have a valid session
             if (String.isBlank(sessionId)) {
@@ -73,7 +78,14 @@ public with sharing class AgentForceController {
             }
             
             // Send the message to the agent
-            return sendMessage(userQuery);
+            Map<String, Object> result = sendMessage(userQuery);
+
+            // Always include session info back to client
+            result.put('sessionId', sessionId);
+            result.put('sequenceId', sequenceId);
+
+            return result;
+
         } catch (Exception e) {
             return buildErrorResponse('Error in AgentForce conversation: ' + e.getMessage());
         }
