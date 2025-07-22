@@ -6,10 +6,16 @@ import getOpenAISettings from '@salesforce/apex/OpenAIController.getOpenAISettin
 import getAgentForceSettings from '@salesforce/apex/AgentForceController.getAgentForceSettings';
 import generateResponse from '@salesforce/apex/OpenAIController.generateResponse';
 import textToSpeech from '@salesforce/apex/OpenAIController.textToSpeech';
-import completeAgentForceConversation from '@salesforce/apex/AgentForceController.completeConversation';
 import processAudio from '@salesforce/apex/OpenAIController.processAudio';
 import getSecureApiKey from '@salesforce/apex/OpenAIController.getSecureApiKey';
 import CHATTERBOX_LOGO from '@salesforce/resourceUrl/ChatterboxLogo';
+
+import {
+  initMessagingSession,
+  sendMessageToAgentForce,
+  getMessages,
+  getLastAgentMessage
+} from 'c/messagingService'; // Adjust import path as needed
 
 export default class VoiceAssistant extends LightningElement {
     @api recordId;
@@ -156,6 +162,13 @@ export default class VoiceAssistant extends LightningElement {
     connectedCallback() {
         this.loadSettings();
         this.addWelcomeMessage();
+
+        initMessagingSession()
+            .then(() => console.log('Messaging session initialized'))
+            .catch(err => {
+            console.error('Error initializing messaging session:', err);
+            this.showToast('Messaging Init Error', 'Could not start chat session.', 'error');
+        });
         // Add global event listeners for keyboard shortcuts
         // window.addEventListener('keydown', this.handleKeyDown.bind(this));
         // window.addEventListener('keyup', this.handleKeyUp.bind(this));
@@ -519,55 +532,16 @@ export default class VoiceAssistant extends LightningElement {
             
             // Process with AgentForce
             console.log('Sending transcription to AgentForce...');
-            const agentResult = await completeAgentForceConversation({
-                userQuery: transcription,
-                clientSessionId: this.sessionId,
-                clientSequenceId: this.sequenceId
-            });
+            await sendMessageToAgentForce(transcription);
+
+            const messages = await getMessages();
+            const response = getLastAgentMessage(messages);
 
             this.messages = this.messages.filter(msg => msg.id !== typingMessageId);
 
-            if (agentResult && agentResult.success) {
-                this.sessionId = agentResult.sessionId;
-                this.sequenceId = agentResult.sequenceId;
-            } else {
-                this.sessionId = null;
-                this.sequenceId = 1;
-            }
-
-            
-            if (!agentResult || !agentResult.success) {
-                const errorMsg = agentResult?.error || agentResult?.message || 'Unknown error';
-                this.showToast('AgentForce Error', errorMsg, 'error');
-                
-                // Fall back to OpenAI
-                console.log('Falling back to OpenAI...');
-                const openAIResponse = await generateResponse({ userMessage: transcription });
-                
-                this.addAssistantMessage(openAIResponse);
-                
-                // Convert to speech
-                try {
-                    this.updateStatus('Converting to speech...', 'processing');
-                    console.log('Sending text to TTS (fallback):', openAIResponse.substring(0, 100) + '...');
-                    
-                    const ttsAudio = await textToSpeech({ text: openAIResponse, voice: this.voice });
-                    console.log('TTS response received (fallback), length:', ttsAudio ? ttsAudio.length : 'undefined');
-                    
-                    // Play the audio
-                    this.updateStatus('Speaking', 'speaking');
-                    await this.playAudio(ttsAudio);
-                } catch (ttsError) {
-                    console.error('Text-to-Speech error (fallback):', ttsError);
-                    this.showToast('Text-to-Speech Error', 'Could not convert response to speech. Please check the console for details.', 'warning');
-                }
-            } else {
-                // Show AgentForce response
-                const assistantText = agentResult.agentResponse;
-                console.log('assistantText:', assistantText, '| Type:', typeof assistantText);
-
-                this.addAssistantMessage(assistantText);
-
+            if (response) {
+                this.addAssistantMessage(response.text || response);
+                const assistantText = response.text
                 try {
                     this.updateStatus('Converting to speech...', 'processing');
 
@@ -605,6 +579,8 @@ export default class VoiceAssistant extends LightningElement {
                     console.error('Text-to-Speech error:', ttsError);
                     this.showToast('Text-to-Speech Error', 'Could not convert response to speech. Please check the console for details.', 'warning');
                 }
+            } else {
+                this.addAssistantMessage('No response received from the agent.');
             }
             
             this.updateStatus('Ready');
@@ -888,35 +864,17 @@ export default class VoiceAssistant extends LightningElement {
 
             // Process with AgentForce (same as voice)
             console.log('Sending text message to AgentForce...');
-            const agentResult = await completeAgentForceConversation({
-                userQuery: message,
-                clientSessionId: this.sessionId,
-                clientSequenceId: this.sequenceId
-            });
+            await sendMessageToAgentForce(message);
+
+            const messages = await getMessages();
+            const response = getLastAgentMessage(messages);
 
             this.messages = this.messages.filter(msg => msg.id !== typingMessageId);
 
-            if (agentResult && agentResult.success) {
-                this.sessionId = agentResult.sessionId;
-                this.sequenceId = agentResult.sequenceId;
+            if (response) {
+            this.addAssistantMessage(response.text || response);
             } else {
-                this.sessionId = null;
-                this.sequenceId = 1;
-            }
-
-            if (!agentResult || !agentResult.success) {
-                const errorMsg = agentResult?.error || agentResult?.message || 'Unknown error';
-                this.showToast('AgentForce Error', errorMsg, 'error');
-
-                // Fall back to OpenAI
-                console.log('Falling back to OpenAI...');
-                const openAIResponse = await generateResponse({ userMessage: message });
-                this.addAssistantMessage(openAIResponse);
-
-            } else {
-                // Show AgentForce response
-                const assistantText = agentResult.agentResponse;
-                this.addAssistantMessage(assistantText);
+            this.addAssistantMessage('No response received from the agent.');
             }
 
         } catch (error) {
