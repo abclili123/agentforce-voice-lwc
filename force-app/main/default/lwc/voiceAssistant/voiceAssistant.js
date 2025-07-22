@@ -13,7 +13,7 @@ import CHATTERBOX_LOGO from '@salesforce/resourceUrl/ChatterboxLogo';
 import {
   initMessagingSession,
   sendMessageToAgentForce,
-  getMessages,
+  getMessagesFromServer,
   getLastAgentMessage
 } from 'c/messagingService'; // Adjust import path as needed
 
@@ -28,6 +28,7 @@ export default class VoiceAssistant extends LightningElement {
     @track error = null;
     @track isCollapsed = true;
     @track chatInput = '';
+    @track messagingInitialized = false;
 
     avatarUrl = CHATTERBOX_LOGO;
 
@@ -163,12 +164,12 @@ export default class VoiceAssistant extends LightningElement {
         this.loadSettings();
         this.addWelcomeMessage();
 
-        initMessagingSession()
-            .then(() => console.log('Messaging session initialized'))
-            .catch(err => {
-            console.error('Error initializing messaging session:', err);
-            this.showToast('Messaging Init Error', 'Could not start chat session.', 'error');
-        });
+        // initMessagingSession()
+        //     .then(() => console.log('Messaging session initialized'))
+        //     .catch(err => {
+        //     console.error('Error initializing messaging session:', err);
+        //     this.showToast('Messaging Init Error', 'Could not start chat session.', 'error');
+        // });
         // Add global event listeners for keyboard shortcuts
         // window.addEventListener('keydown', this.handleKeyDown.bind(this));
         // window.addEventListener('keyup', this.handleKeyUp.bind(this));
@@ -534,7 +535,7 @@ export default class VoiceAssistant extends LightningElement {
             console.log('Sending transcription to AgentForce...');
             await sendMessageToAgentForce(transcription);
 
-            const messages = await getMessages();
+            const messages = await getMessagesFromServer();
             const response = getLastAgentMessage(messages);
 
             this.messages = this.messages.filter(msg => msg.id !== typingMessageId);
@@ -864,9 +865,13 @@ export default class VoiceAssistant extends LightningElement {
 
             // Process with AgentForce (same as voice)
             console.log('Sending text message to AgentForce...');
+            if (!this.messagingInitialized) {
+                await initMessagingSession();
+                this.messagingInitialized = true;
+            }
             await sendMessageToAgentForce(message);
 
-            const messages = await getMessages();
+            const messages = await getMessagesFromServer();
             const response = getLastAgentMessage(messages);
 
             this.messages = this.messages.filter(msg => msg.id !== typingMessageId);

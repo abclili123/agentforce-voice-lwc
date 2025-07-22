@@ -5,36 +5,46 @@ public with sharing class MessagingServiceController {
 
     private static String accessToken;
 
+    private static Map<String, Object> buildErrorResponse(String error) {
+        return new Map<String, Object>{
+            'success' => false,
+            'error' => error
+        };
+    }
+
     @AuraEnabled
-    public static String startConversation() {
+    public static Map<String, Object> startConversation() {
+        Map<String, Object> result = new Map<String, Object>();
         try {
             fetchAccessToken();
 
             HttpRequest req = new HttpRequest();
-            req.setEndpoint(SCRT_URL + '/iamessage/api/v2/conversations');
+            req.setEndpoint(SCRT_URL + '/iamessage/api/v2/conversation');
             req.setMethod('POST');
             req.setHeader('Authorization', 'Bearer ' + accessToken);
             req.setHeader('Content-Type', 'application/json');
 
             Map<String, Object> body = new Map<String, Object>{
-                'conversationId' => generateUUID(),
-                'esDeveloperName' => ES_DEPLOYMENT_NAME
+                'conversationId' => String.valueOf(UUID.randomUUID()).toLowerCase(),
+                'esDeveloperName' => ES_DEPLOYMENT_NAME,
+                'routingAttributes' => new Map<String, Object>{ 'Name' => 'Anonymous', 'AppSource' => 'LWC' }
             };
             req.setBody(JSON.serialize(body));
 
             HttpResponse res = new Http().send(req);
-            System.debug('startConversation response: ' + res.getBody());
-
-            if (res.getStatusCode() != 200) {
-                throw new AuraHandledException('Failed to start conversation (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
+            if (res.getStatusCode() == 200 || res.getStatusCode() == 201) {
+                Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                result.put('success', true);
+                result.put('conversation', responseMap);
+                return result;
+            } else {
+                return buildErrorResponse('Failed to start conversation: ' + res.getBody());
             }
-
-            return res.getBody();
         } catch (Exception e) {
-            System.debug('Error in startConversation: ' + e.getMessage());
-            throw new AuraHandledException('startConversation failed: ' + e.getMessage());
+            return buildErrorResponse('startConversation failed: ' + e.getMessage());
         }
     }
+
 
     @AuraEnabled
     public static void sendMessageToAgent(String conversationId, String text) {
@@ -42,28 +52,38 @@ public with sharing class MessagingServiceController {
             fetchAccessToken();
 
             HttpRequest req = new HttpRequest();
-            req.setEndpoint(SCRT_URL + '/iamessage/api/v2/conversations/' + conversationId + '/messages');
+            req.setEndpoint(SCRT_URL + '/iamessage/api/v2/conversation/' + conversationId + '/message'); // corrected endpoint
             req.setMethod('POST');
             req.setHeader('Authorization', 'Bearer ' + accessToken);
             req.setHeader('Content-Type', 'application/json');
 
-            Map<String, Object> body = new Map<String, Object>{
+            Map<String, Object> messagePayload = new Map<String, Object>{
                 'message' => new Map<String, Object>{
-                    'type' => 'Text',
-                    'text' => text
-                }
+                    'id' => String.valueOf(Crypto.getRandomLong()), // unique ID
+                    'messageType' => 'StaticContentMessage',
+                    'staticContent' => new Map<String, Object>{
+                        'formatType' => 'Text',
+                        'text' => text
+                    }
+                },
+                'esDeveloperName' => ES_DEPLOYMENT_NAME,
+                'isNewMessagingSession' => false,
+                'language' => 'en'
             };
-            req.setBody(JSON.serialize(body));
+
+            req.setBody(JSON.serialize(messagePayload));
 
             HttpResponse res = new Http().send(req);
+            System.debug('sendMessage response status: ' + res.getStatusCode());
             System.debug('sendMessage response: ' + res.getBody());
 
             if (res.getStatusCode() >= 300) {
                 throw new AuraHandledException('Failed to send message (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
             }
         } catch (Exception e) {
-            System.debug('Error in sendMessageToAgent: ' + e.getMessage());
-            throw new AuraHandledException('sendMessageToAgent failed: ' + e.getMessage());
+            String msg = (e != null && e.getMessage() != null) ? e.getMessage() : 'Unknown error in sendMessageToAgent';
+            System.debug('Error in sendMessageToAgent: ' + msg);
+            throw new AuraHandledException('sendMessageToAgent failed: ' + msg);
         }
     }
 
@@ -73,7 +93,7 @@ public with sharing class MessagingServiceController {
             fetchAccessToken();
 
             HttpRequest req = new HttpRequest();
-            req.setEndpoint(SCRT_URL + '/iamessage/api/v2/conversations/' + conversationId + '/messages');
+            req.setEndpoint(SCRT_URL + '/iamessage/api/v2/conversation/' + conversationId + '/messages');
             req.setMethod('GET');
             req.setHeader('Authorization', 'Bearer ' + accessToken);
 
@@ -86,8 +106,9 @@ public with sharing class MessagingServiceController {
 
             return res.getBody();
         } catch (Exception e) {
-            System.debug('Error in getMessages: ' + e.getMessage());
-            throw new AuraHandledException('getMessages failed: ' + e.getMessage());
+            String msg = (e != null && e.getMessage() != null) ? e.getMessage() : 'Unknown error in getMessages';
+            System.debug('Error in getMessages: ' + msg);
+            throw new AuraHandledException('getMessages failed: ' + msg);
         }
     }
 
@@ -100,30 +121,38 @@ public with sharing class MessagingServiceController {
             req.setMethod('POST');
             req.setHeader('Content-Type', 'application/json');
 
+            Map<String, Object> context = new Map<String, Object>{
+                'appName' => 'ChatterboxesVoiceApp',
+                'clientVersion' => '1.0.0'
+            };
+
             Map<String, Object> body = new Map<String, Object>{
                 'orgId' => ORG_ID,
                 'esDeveloperName' => ES_DEPLOYMENT_NAME,
                 'capabilitiesVersion' => '1',
-                'platform' => 'Web'
+                'platform' => 'Web',
+                'context' => context
             };
+
             req.setBody(JSON.serialize(body));
 
+            System.debug('Sending fetchAccessToken request to: ' + req.getEndpoint());
+            System.debug('Request body: ' + req.getBody());
+
             HttpResponse res = new Http().send(req);
-            System.debug('fetchAccessToken response: ' + res.getBody());
+            System.debug('Access token response status: ' + res.getStatusCode());
+            System.debug('Access token response body: ' + res.getBody());
 
             if (res.getStatusCode() != 200) {
                 throw new AuraHandledException('Failed to fetch access token (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
             }
 
             Map<String, Object> json = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
-            accessToken = (String) json.get('token');
+            accessToken = (String) json.get('accessToken');
         } catch (Exception e) {
-            System.debug('Error in fetchAccessToken: ' + e.getMessage());
-            throw new AuraHandledException('fetchAccessToken failed: ' + e.getMessage());
+            String msg = (e != null && e.getMessage() != null) ? e.getMessage() : 'Unknown error in fetchAccessToken';
+            System.debug('Error in fetchAccessToken(): ' + msg);
+            throw new AuraHandledException('fetchAccessToken failed: ' + msg);
         }
-    }
-
-    private static String generateUUID() {
-        return String.valueOf(Crypto.getRandomLong()).replace('-', '') + String.valueOf(Crypto.getRandomLong()).replace('-', '');
     }
 }
