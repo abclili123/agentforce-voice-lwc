@@ -1,7 +1,7 @@
 public with sharing class MessagingServiceController {
-    public static final String SCRT_URL = 'https://orgfarm-7428735f60-dev-ed.develop.my.salesforce-scrt.com';
-    public static final String ORG_ID = '00DgL000006ain3';
-    public static final String ES_DEPLOYMENT_NAME = 'Chatterbox_Custom_Front_End';
+    public static final String SCRT_URL = '';
+    public static final String ORG_ID = '';
+    public static final String ES_DEPLOYMENT_NAME = '';
 
     private static String accessToken;
 
@@ -27,7 +27,6 @@ public with sharing class MessagingServiceController {
             Map<String, Object> body = new Map<String, Object>{
                 'conversationId' => String.valueOf(UUID.randomUUID()).toLowerCase(),
                 'esDeveloperName' => ES_DEPLOYMENT_NAME,
-                'routingAttributes' => new Map<String, Object>{ 'Name' => 'Anonymous', 'AppSource' => 'LWC' }
             };
             req.setBody(JSON.serialize(body));
 
